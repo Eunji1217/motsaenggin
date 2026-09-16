@@ -79,6 +79,18 @@ function toJamo(word) {
   }
   fs.writeFileSync(path.join(OUT, 'index.json'), JSON.stringify(index), 'utf8');
 
+  // 워커도 같은 출제 후보로 정답을 계산해야 하므로 ES 모듈로 복사해 둡니다
+  const wdir = path.join(ROOT, 'worker', 'src');
+  if (fs.existsSync(wdir)) {
+    fs.writeFileSync(
+      path.join(wdir, 'answers.js'),
+      '/* tools/build-dict.cjs 가 words.js 에서 생성합니다. 직접 고치지 마세요. */\n' +
+      'export const ANSWERS = ' + JSON.stringify(ANSWERS) + ';\n',
+      'utf8'
+    );
+    console.log('  worker/src/answers.js  ' + ANSWERS.length + '개');
+  }
+
   // 출제 후보 중 사전 길이 파일이 없는 건 없어야 합니다
   const bad = ANSWERS.filter((w) => !byLen.has(toJamo(w).length));
   if (bad.length) console.warn('경고 — 사전에 없는 길이의 출제 후보:', bad.join(' '));

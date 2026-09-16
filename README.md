@@ -37,6 +37,35 @@
 git add -A && git commit -m "..." && git push
 ```
 
+## 순위표
+
+`worker/` 는 Cloudflare Worker + KV 로 도는 순위표 API 입니다.
+게임은 서버 없이도 돌아가며, `config.js` 의 `BOARD_API` 가 비어 있으면 순위 버튼이 숨겨집니다.
+
+| 엔드포인트 | 하는 일 |
+| --- | --- |
+| `POST /score` | 기록 접수. **서버가 그날 정답으로 다시 채점해서** 앞뒤가 맞는 기록만 받습니다 |
+| `GET /board` | 오늘 순위 + 누적 순위 |
+
+닉네임은 기기마다 만든 임의의 열쇠와 묶여서, 남이 같은 닉네임으로 올리면 거부됩니다.
+KV 는 키 메타데이터에 기록을 담아 `list()` 한 번으로 전체 순위를 읽습니다.
+
+```bash
+node worker/test.mjs          # KV 를 흉내 내어 배포 없이 로직 검증
+
+npx wrangler login                          # 최초 1회
+cd worker
+npx wrangler kv namespace create SCORES     # 나온 id 를 wrangler.toml 에 적기
+npx wrangler deploy                         # 주소를 config.js 의 BOARD_API 에 적기
+```
+
+### 부정 방지의 한계
+
+서버가 재채점하므로 "5번 다 틀렸는데 1번 만에 맞혔다"처럼 **앞뒤가 안 맞는 기록은 막힙니다.**
+다만 그날 정답이 `words.js` 안에 들어 있어서, 페이지 소스를 읽을 줄 아는 사람은
+정답을 미리 알고 1번 만에 맞힐 수 있습니다. 친구들끼리 하는 판을 전제로 한 수준입니다.
+정말로 막으려면 채점 자체를 서버로 옮겨야 합니다(정답을 클라이언트에 아예 안 보내기).
+
 ## 조작
 
 - 화면 자판 클릭, 또는 **두벌식 그대로 타이핑** (영문 입력 상태에서도 `Q`→`ㅂ` 식으로 동작)

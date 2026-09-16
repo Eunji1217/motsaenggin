@@ -1,0 +1,10 @@
+name = "motsaenggin-board"
+main = "src/index.js"
+compatibility_date = "2026-05-01"
+workers_dev = true
+
+# KV 네임스페이스는 아래 명령으로 만들고 id 를 채웁니다.
+#   npx wrangler kv namespace create SCORES
+[[kv_namespaces]]
+binding = "SCORES"
+id = "PUT_KV_NAMESPACE_ID_HERE"

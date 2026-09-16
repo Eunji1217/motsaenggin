@@ -222,6 +222,34 @@ body{
 .sw-hit{background:var(--hit);color:var(--hit-ink)}
 .sw-near{background:var(--near);color:var(--near-ink)}
 .sw-miss{background:var(--miss);color:var(--miss-ink)}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tab{
+  flex:1;padding:8px;border:1px solid var(--key-edge);border-radius:3px;
+  background:transparent;color:var(--ink-soft);
+  font-family:inherit;font-weight:700;font-size:.78rem;cursor:pointer;
+}
+.tab[aria-selected="true"]{background:var(--rule);border-color:var(--rule);color:#fff}
+.rank{list-style:none;margin:0 0 14px;padding:0;font-size:.82rem}
+.rank li{
+  display:grid;grid-template-columns:1.9rem 1fr auto;gap:8px;align-items:baseline;
+  padding:7px 6px;border-bottom:1px solid var(--rule-faint);
+}
+.rank li:last-child{border-bottom:0}
+.rank li[data-me="1"]{background:color-mix(in srgb,var(--rule) 13%,transparent);border-radius:3px}
+.rank .pos{font-family:'Gowun Batang',serif;color:var(--rule);font-weight:700;font-variant-numeric:tabular-nums}
+.rank .who{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank .val{color:var(--ink-soft);font-size:.78rem;font-variant-numeric:tabular-nums}
+.empty{color:var(--ink-faint);font-size:.8rem;text-align:center;padding:20px 0;margin:0 0 14px}
+.nickrow{display:flex;gap:8px;margin-bottom:6px}
+.nickrow input{
+  flex:1;min-width:0;padding:11px 12px;border-radius:3px;
+  border:1px solid var(--key-edge);background:var(--paper);color:var(--ink);
+  font-family:inherit;font-size:.9rem;
+}
+.nickrow input:focus-visible{border-color:var(--rule);outline-offset:0}
+.nickrow .btn{flex:0 0 auto;padding-inline:16px}
+.hint{margin:0 0 14px;font-size:.71rem;color:var(--ink-faint)}
+.hint[data-tone="warn"]{color:var(--near)}
 [hidden]{display:none!important}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -238,7 +266,7 @@ body{
     </div>
     <div class="headbtns">
       <button class="iconbtn" id="btnHelp" type="button" aria-label="규칙 보기">?</button>
-      <button class="iconbtn" id="btnStats" type="button" aria-label="내 기록 보기">기록</button>
+      <button class="iconbtn" id="btnRank" type="button" aria-label="순위표 보기">순위</button>
     </div>
   </header>
 
@@ -264,6 +292,7 @@ body{
   <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div>
 </div>
 
+<script src="config.js"></script>
 <script src="words.js"></script>
 <script src="game.js"></script>
 

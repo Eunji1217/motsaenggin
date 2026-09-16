@@ -83,13 +83,15 @@
   // ── 저장 ──────────────────────────────────────────────────
   const SKEY = 'natmal5:v1';
   const blank = () => ({
+    nick: '',
+    pin: '',
     stats: { plays: 0, wins: 0, triesSum: 0, streak: 0, best: 0 },
-    today: { day: TODAY, guesses: [], done: false, won: false }
+    today: { day: TODAY, guesses: [], done: false, won: false, posted: false }
   });
   let save;
   try { save = JSON.parse(localStorage.getItem(SKEY)) || blank(); } catch (e) { save = blank(); }
   if (!save.stats) save = blank();
-  if (!save.today || save.today.day !== TODAY) save.today = { day: TODAY, guesses: [], done: false, won: false };
+  if (!save.today || save.today.day !== TODAY) save.today = { day: TODAY, guesses: [], done: false, won: false, posted: false };
   const persist = () => { try { localStorage.setItem(SKEY, JSON.stringify(save)); } catch (e) {} };
 
   // ── 상태 ──────────────────────────────────────────────────
@@ -369,10 +371,159 @@
     setTimeout(() => { btn.textContent = '결과 복사하기'; }, 1800);
   }
 
+  // ── 순위표 ────────────────────────────────────────────────
+  const API = String(window.BOARD_API || '').replace(/\/+$/, '');
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // 닉네임을 남이 가로채지 못하도록 이 기기에서만 아는 열쇠를 함께 보냅니다
+  function ensurePin() {
+    if (!save.pin) {
+      const a = new Uint8Array(16);
+      crypto.getRandomValues(a);
+      save.pin = [...a].map((b) => b.toString(16).padStart(2, '0')).join('');
+      persist();
+    }
+    return save.pin;
+  }
+
+  let boardCache = null;
+  let boardTab = 'today';
+
+  async function fetchBoard() {
+    const res = await fetch(API + '/board?day=' + TODAY, { cache: 'no-store' });
+    if (!res.ok) throw new Error(res.status);
+    boardCache = await res.json();
+  }
+
+  async function postScore(nick) {
+    const res = await fetch(API + '/score', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ day: TODAY, nick: nick, pin: ensurePin(), guesses: save.today.guesses })
+    });
+    let data = {};
+    try { data = await res.json(); } catch (e) {}
+    if (res.status === 409 && data.already) return data;   // 이미 올린 건 성공으로 봅니다
+    if (!res.ok) throw new Error(data.error || '순위표에 올리지 못했어요');
+    return data;
+  }
+
+  function rankHTML(rows, kind) {
+    if (!rows || !rows.length) {
+      return '<p class="empty">아직 아무도 없어요 · 첫 번째가 되어 보세요</p>';
+    }
+    return '<ol class="rank">' + rows.map((r, i) => {
+      const me = save.nick && r.nick === save.nick ? ' data-me="1"' : '';
+      const val = kind === 'today'
+        ? (r.won ? r.tries + '번 만에' : '실패')
+        : (r.wins + '승 · 평균 ' + (r.avg == null ? '—' : r.avg));
+      return '<li' + me + '>' +
+        '<span class="pos">' + (i + 1) + '</span>' +
+        '<span class="who">' + esc(r.nick) + '</span>' +
+        '<span class="val">' + val + '</span></li>';
+    }).join('') + '</ol>';
+  }
+
+  function openBoard() {
+    if (!API) {
+      return openSheet(
+        '<h2 id="sheetTitle">순위표</h2>' +
+        '<p class="sub">아직 연결되지 않았어요</p>' +
+        '<p class="empty">순위표 서버가 준비되면 여기에 나타납니다</p>' +
+        '<div class="btnrow"><button class="btn" type="button" data-close>닫기</button></div>'
+      );
+    }
+    const needPost = save.today.done && !save.today.posted;
+    openSheet(
+      '<h2 id="sheetTitle">순위</h2>' +
+      '<p class="sub">' + dayLabel() + '</p>' +
+      '<div class="tabs" role="tablist">' +
+        '<button class="tab" type="button" role="tab" data-tab="today">오늘</button>' +
+        '<button class="tab" type="button" role="tab" data-tab="all">누적</button>' +
+      '</div>' +
+      '<div id="rankBody"><p class="empty">불러오는 중…</p></div>' +
+      '<p class="hint">올린 기록이 모두에게 보이기까지 1분쯤 걸릴 수 있어요</p>' +
+      '<div class="btnrow">' +
+        (needPost ? '<button class="btn" type="button" id="btnGoPost">내 기록 올리기</button>' : '') +
+        '<button class="btn ghost" type="button" data-close>닫기</button>' +
+      '</div>'
+    );
+    const paint = () => {
+      sheet.querySelectorAll('.tab').forEach((t) =>
+        t.setAttribute('aria-selected', String(t.dataset.tab === boardTab)));
+      const body = $('rankBody');
+      if (!body || !boardCache) return;
+      body.innerHTML = rankHTML(boardTab === 'today' ? boardCache.today : boardCache.all, boardTab);
+    };
+    sheet.querySelectorAll('.tab').forEach((t) =>
+      t.addEventListener('click', () => { boardTab = t.dataset.tab; paint(); }));
+    const go = $('btnGoPost');
+    if (go) go.addEventListener('click', openResult);
+    paint();
+    fetchBoard().then(paint).catch(() => {
+      const body = $('rankBody');
+      if (body) body.innerHTML = '<p class="empty">순위표를 불러오지 못했어요</p>';
+    });
+  }
+
+  // 결과 겹창 안의 등록 칸
+  function postSection() {
+    if (!API || !save.today.done) return '';
+    if (save.today.posted) {
+      return '<div class="btnrow" style="margin-bottom:8px">' +
+        '<button class="btn ghost" type="button" id="btnSeeRank">순위표 보기</button></div>' +
+        '<p class="hint"><b>' + esc(save.nick) + '</b> 이름으로 올렸습니다</p>';
+    }
+    return '<div class="nickrow">' +
+        '<input id="nickInput" type="text" maxlength="12" autocomplete="nickname" ' +
+        'placeholder="닉네임" value="' + esc(save.nick || '') + '">' +
+        '<button class="btn" type="button" id="btnPost">순위 등록</button>' +
+      '</div>' +
+      '<p class="hint" id="nickHint">한 번 정하면 이 기기에서 계속 그 이름으로 올라갑니다</p>';
+  }
+
+  function wirePost() {
+    const see = $('btnSeeRank');
+    if (see) see.addEventListener('click', openBoard);
+    const post = $('btnPost');
+    if (!post) return;
+    const run = async () => {
+      const input = $('nickInput'), hint = $('nickHint');
+      const nick = input.value.replace(/\s+/g, ' ').trim();
+      if ([...nick].length < 2 || [...nick].length > 12) {
+        hint.dataset.tone = 'warn';
+        hint.textContent = '닉네임은 2~12자로 지어 주세요';
+        input.focus();
+        return;
+      }
+      post.disabled = true;
+      post.textContent = '올리는 중…';
+      try {
+        await postScore(nick);
+        save.nick = nick;
+        save.today.posted = true;
+        persist();
+        boardCache = null;
+        openBoard();
+      } catch (err) {
+        hint.dataset.tone = 'warn';
+        hint.textContent = err.message;
+        post.disabled = false;
+        post.textContent = '순위 등록';
+      }
+    };
+    post.addEventListener('click', run);
+    $('nickInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); run(); }
+    });
+  }
+
   // ── 겹창 ──────────────────────────────────────────────────
   function openSheet(html) {
     sheet.innerHTML = html;
     veil.hidden = false;
+    sheet.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', closeSheet));
     const first = sheet.querySelector('button');
     if (first) first.focus();
   }
@@ -389,9 +540,10 @@
       '<p class="sub">' + dayLabel() + ' · ' + head[1] + '</p>' +
       '<pre class="grid-emoji">' + emojiGrid() + '</pre>' +
       '<div class="answer-line"><span>오늘의 낱말</span><b>' + ANSWER + '</b></div>' +
+      postSection() +
       '<div class="btnrow">' +
         '<button class="btn" type="button" id="btnCopy">결과 복사하기</button>' +
-        '<button class="btn ghost" type="button" id="btnClose">닫기</button>' +
+        '<button class="btn ghost" type="button" data-close>닫기</button>' +
       '</div>' +
       '<p class="next">다음 낱말까지 <span id="cd">--:--:--</span></p>' +
       '<dl class="stats" style="margin-top:14px">' +
@@ -401,7 +553,7 @@
       '</dl>'
     );
     $('btnCopy').addEventListener('click', (e) => copyShare(e.currentTarget));
-    $('btnClose').addEventListener('click', closeSheet);
+    wirePost();
     tickCountdown();
   }
 
@@ -430,36 +582,17 @@
         '<li><span class="swatch sw-hit">ㅂ</span> 자리까지 정확합니다.</li>' +
         '<li><span class="swatch sw-near">ㅏ</span> 낱말에 있지만 자리가 달라요.</li>' +
         '<li><span class="swatch sw-miss">ㅅ</span> 낱말에 없는 자모예요.</li>' +
-        '<li>사전에 있는 낱말만 입력할 수 있습니다.</li>' +
-        '<li>낱말은 한국 시각 자정에 바뀝니다.</li>' +
+        '<li>두 음절 낱말 78,000여 개가 입력으로 인정됩니다.</li>' +
+        '<li>낱말은 한국 시각 자정에 바뀌고, 그날은 모두가 같은 낱말을 풉니다.</li>' +
+        '<li>다 풀면 닉네임을 정해 <b>순위표</b>에 올릴 수 있어요.</li>' +
       '</ul>' +
-      '<div class="btnrow"><button class="btn" type="button" id="btnClose2">시작하기</button></div>'
+      '<div class="btnrow"><button class="btn" type="button" data-close>시작하기</button></div>'
     );
-    $('btnClose2').addEventListener('click', closeSheet);
-  }
-
-  function openStats() {
-    if (save.today.done) return openResult();
-    const a = avg();
-    openSheet(
-      '<h2 id="sheetTitle">내 기록</h2>' +
-      '<p class="sub">이 브라우저에만 저장됩니다</p>' +
-      '<dl class="stats" style="border-top:0;padding-top:0">' +
-        '<div class="stat"><dt>누적 플레이</dt><dd>' + save.stats.plays + ' ' + seedling() + '</dd></div>' +
-        '<div class="stat"><dt>승률</dt><dd>' + (save.stats.plays ? rate() + '%' : '—') + '</dd></div>' +
-        '<div class="stat"><dt>평균 시도</dt><dd>' + (a === null ? '—' : a) + '</dd></div>' +
-      '</dl>' +
-      '<div class="answer-line" style="margin-top:14px">' +
-        '<span>연속 성공</span><b>' + save.stats.streak + '</b>' +
-        '<span>최고 기록</span><b>' + save.stats.best + '</b>' +
-      '</div>' +
-      '<div class="btnrow"><button class="btn" type="button" id="btnClose3">닫기</button></div>'
-    );
-    $('btnClose3').addEventListener('click', closeSheet);
   }
 
   $('btnHelp').addEventListener('click', openHelp);
-  $('btnStats').addEventListener('click', openStats);
+  $('btnRank').addEventListener('click', openBoard);
+  if (!API) $('btnRank').hidden = true;   // 순위표 서버가 없으면 조용히 숨깁니다
 
   // ── 되살리기 ───────────────────────────────────────────────
   save.today.guesses.forEach((g, i) => reveal(i, asJamo(g), false));
