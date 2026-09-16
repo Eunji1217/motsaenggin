@@ -6,10 +6,15 @@ import { ANSWERS } from './src/answers.js';
 import { toJamo, hash } from './src/jamo.js';
 
 const store = new Map();
+const parse = (v, opts) => (opts && opts.type === 'json' ? (v ? JSON.parse(v) : null) : v);
 const SCORES = {
-  async getWithMetadata(k) {
+  async get(k, opts) {
     const e = store.get(k);
-    return e ? { value: e.value, metadata: e.metadata } : { value: null, metadata: null };
+    return e ? parse(e.value, opts) : null;
+  },
+  async getWithMetadata(k, opts) {
+    const e = store.get(k);
+    return e ? { value: parse(e.value, opts), metadata: e.metadata } : { value: null, metadata: null };
   },
   async put(k, v, opts = {}) { store.set(k, { value: v, metadata: opts.metadata || null }); },
   async list({ prefix }) {
@@ -77,8 +82,39 @@ await check('실패 기록도 접수', await post({ day: DAY, nick: '아쉬움',
 // 한 번에 맞힌 사람
 await check('1번 만에 성공', await post({ day: DAY, nick: '천재', pin: 'e'.repeat(32), guesses: [TARGET] }), 200, '"ok":true');
 
+// ── 무한 연습 ───────────────────────────────────────────────
+console.log('\n무한 연습');
+const IDX = 7;
+const W7 = toJamo(POOL[IDX]).join('');
+const IDX2 = 11;
+const W11 = toJamo(POOL[IDX2]).join('');
+const otherOf = (t) => toJamo(POOL.find((w) => toJamo(w).length === t.length && toJamo(w).join('') !== t)).join('');
+
+const clear = (b) => worker.fetch(new Request('https://x/clear', {
+  method: 'POST', headers: { 'content-type': 'application/json', origin: ORIGIN }, body: JSON.stringify(b)
+}), env);
+
+await check('낱말 깨기', await clear({ nick: '은지', pin: 'a'.repeat(32), idx: IDX, guesses: [otherOf(W7), W7] }), 200, '"cleared":1');
+await check('같은 낱말 또 깨도 개수 그대로', await clear({ nick: '은지', pin: 'a'.repeat(32), idx: IDX, guesses: [W7] }), 200, '"cleared":1');
+await check('다른 낱말 깨면 개수 증가', await clear({ nick: '은지', pin: 'a'.repeat(32), idx: IDX2, guesses: [W11] }), 200, '"cleared":2');
+await check('못 맞힌 낱말 거부', await clear({ nick: '은지', pin: 'a'.repeat(32), idx: IDX, guesses: [otherOf(W7)] }), 400, '맞히지 못한');
+// 자모 길이가 아예 다른 낱말의 기록을 붙여 보냅니다
+const IDX3 = POOL.findIndex((w) => toJamo(w).length !== W7.length);
+await check('자모 길이가 다른 번호에 붙이면 거부',
+  await clear({ nick: '은지', pin: 'a'.repeat(32), idx: IDX3, guesses: [W7] }), 400, '잘못된 기록');
+await check('같은 길이라도 다른 낱말이면 거부',
+  await clear({ nick: '은지', pin: 'a'.repeat(32), idx: IDX2, guesses: [W7] }), 400, '맞히지 못한');
+await check('없는 번호 거부', await clear({ nick: '은지', pin: 'a'.repeat(32), idx: 99999, guesses: [W7] }), 400, '잘못된 낱말');
+await check('남의 닉네임으로 깨기 거부', await clear({ nick: '은지', pin: 'f'.repeat(32), idx: IDX, guesses: [W7] }), 409, '이미 쓰이는');
+
+const prog = await (await get('/progress?nick=' + encodeURIComponent('은지'))).json();
+if (JSON.stringify(prog.cleared) === JSON.stringify([IDX, IDX2].sort((a, b) => a - b))) {
+  pass++; console.log('  ✔ 진도 내려받기');
+} else { fail++; console.log('  ✘ 진도 내려받기 → ' + JSON.stringify(prog)); }
+
 // 순위
 const board = await (await get('/board')).json();
+console.log('깬 낱말 순위:', board.endless.map((r, i) => (i + 1) + '위 ' + r.nick + ' ' + r.cleared + '개').join(' / '));
 console.log('\n오늘 순위:', board.today.map((r, i) => (i + 1) + '위 ' + r.nick + ' ' + (r.won ? r.tries + '번' : '실패')).join(' / '));
 console.log('누적 순위:', board.all.map((r, i) => (i + 1) + '위 ' + r.nick + ' ' + r.wins + '승 평균' + r.avg).join(' / '));
 

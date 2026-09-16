@@ -116,6 +116,15 @@ body{
 }
 .iconbtn:hover{border-color:var(--rule);color:var(--rule)}
 
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--rule-faint)}
+.mode{
+  padding:9px 6px;border:0;background:transparent;color:var(--ink-faint);
+  font-family:inherit;font-size:.78rem;font-weight:700;cursor:pointer;
+  border-bottom:2px solid transparent;
+}
+.mode[aria-selected="true"]{color:var(--rule);border-bottom-color:var(--rule)}
+.mode + .mode{border-left:1px solid var(--rule-faint)}
+
 .meta{
   display:flex;align-items:baseline;justify-content:space-between;gap:10px;
   font-size:.75rem;color:var(--ink-soft);font-variant-numeric:tabular-nums;
@@ -270,9 +279,14 @@ body{
     </div>
   </header>
 
+  <div class="modes" role="tablist" aria-label="놀이 방식">
+    <button class="mode" type="button" role="tab" data-mode="daily" id="modeDaily">오늘의 낱말</button>
+    <button class="mode" type="button" role="tab" data-mode="endless" id="modeEndless">무한 연습</button>
+  </div>
+
   <div class="meta">
-    <span id="metaDate">—</span>
-    <span>자모 <strong id="metaLen">—</strong>칸 · 기회 <strong>5</strong>번</span>
+    <span id="metaLeft">—</span>
+    <span id="metaRight">—</span>
   </div>
 
   <div class="board" id="board"></div>

@@ -7,4 +7,4 @@ workers_dev = true
 #   npx wrangler kv namespace create SCORES
 [[kv_namespaces]]
 binding = "SCORES"
-id = "PUT_KV_NAMESPACE_ID_HERE"
+id = "54336a7f344f49f683f411d9e66d0608"

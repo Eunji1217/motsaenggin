@@ -1,8 +1,11 @@
 /* dict/*.txt 생성 — 입력으로 인정할 두 글자 낱말 사전
  *
  * 출처: https://github.com/acidsound/korean_wordlist (wordslistUnique.txt)
- * 거기서 "순한글 두 음절"만 추려 자모 길이별 파일로 나눕니다.
- * 게임은 그날 정답의 자모 길이에 해당하는 파일 하나만 내려받습니다.
+ * 거기서 순한글 낱말(1~6음절)을 전부 추려 **자모 길이별로** 나눕니다.
+ * 힌트가 "자모 몇 칸"이므로 글자 수는 상관없습니다 —
+ * 6칸 판에서는 박쥐(2글자)도 소나기(3글자)도 똑같이 valid 한 입력입니다.
+ *
+ * 한 줄에 한 낱말. 게임은 그날 정답의 자모 길이 파일 하나만 내려받습니다.
  *
  * 실행: node tools/build-dict.cjs
  */
@@ -48,9 +51,9 @@ function toJamo(word) {
   const words = new Set();
   for (const raw of text.split('\n')) {
     const w = raw.trim();
-    if (/^[가-힣]{2}$/.test(w)) words.add(w);
+    if (/^[가-힣]{1,6}$/.test(w)) words.add(w);
   }
-  console.log('두 음절 낱말: ' + words.size.toLocaleString());
+  console.log('순한글 낱말: ' + words.size.toLocaleString());
 
   // 출제 후보는 반드시 입력도 가능해야 합니다 (정답을 못 쳐 넣으면 게임이 깨짐)
   const src = fs.readFileSync(path.join(ROOT, 'words.js'), 'utf8');
@@ -70,10 +73,12 @@ function toJamo(word) {
   fs.rmSync(OUT, { recursive: true, force: true });
   fs.mkdirSync(OUT, { recursive: true });
 
+  const need = new Set(ANSWERS.map((w) => toJamo(w).length));
   const index = {};
   for (const [n, list] of [...byLen].sort((a, b) => a[0] - b[0])) {
+    if (!need.has(n)) continue;                 // 출제되지 않는 길이는 아무도 안 받습니다
     list.sort();
-    fs.writeFileSync(path.join(OUT, n + '.txt'), list.join(''), 'utf8');
+    fs.writeFileSync(path.join(OUT, n + '.txt'), list.join('\n'), 'utf8');
     index[n] = list.length;
     console.log('  dict/' + n + '.txt  ' + String(list.length).padStart(6) + '개');
   }
