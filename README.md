@@ -1,5 +1,7 @@
 # 못생긴놈들 글자나 맞춰라
 
+**놀러 오세요 → https://eunji1217.github.io/motsaenggin/**
+
 한글 두 글자 낱말을 **기본 자모 24개**로 쪼개어 다섯 번 안에 맞히는 하루 한 번짜리 퍼즐.
 (꼬들·Wordle 계열, 숫자야구와 같은 힌트 구조)
 
@@ -18,8 +20,20 @@
 | `index.html` | 마크업 + 스타일 (원고지 모티프, 라이트/다크) |
 | `words.js` | 사전 956개 / 출제 후보 458개 (두 글자 낱말) |
 | `game.js` | 자모 분해, 채점, 자판, 기록·공유 |
+| `og.png` | 카톡·트위터 링크 미리보기 카드 (1200×630) |
+| `icon.svg` | 파비콘 |
+| `tools/make-og.cjs` | `og.png` 생성기 — `node tools/make-og.cjs` |
 
 의존성 없음. `index.html`을 브라우저로 열면 바로 돌아갑니다.
+
+## 배포
+
+`main` 브랜치 루트를 GitHub Pages가 그대로 서비스합니다. 빌드 단계 없음 —
+고치고 `git push` 하면 1분쯤 뒤 반영됩니다.
+
+```bash
+git add -A && git commit -m "..." && git push
+```
 
 ## 조작
 
