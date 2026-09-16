@@ -34,20 +34,7 @@
     return out;
   }
 
-  // ── 사전 색인 ──────────────────────────────────────────────
-  const byKey = new Map();     // 자모열 → 낱말
-  const lenCount = new Map();  // 자모 수 → 낱말 개수
-  for (const w of DICT) {
-    const k = toJamo(w).join('');
-    if (!k) continue;
-    if (!byKey.has(k)) byKey.set(k, w);
-    lenCount.set(k.length, (lenCount.get(k.length) || 0) + 1);
-  }
-  // 고를 수 있는 낱말이 충분한 길이만 출제
-  const okLen = new Set([...lenCount].filter(([, n]) => n >= 60).map(([l]) => l));
-  let pool = ANSWERS.filter((w) => okLen.has(toJamo(w).length));
-  if (!pool.length) pool = ANSWERS.slice();
-  pool.sort();
+  const pool = ANSWERS.slice().sort();
 
   // ── 오늘 ──────────────────────────────────────────────────
   const KST = 9 * 3600000;
@@ -71,6 +58,27 @@
   const TARGET = toJamo(ANSWER);
   const LEN = TARGET.length;
   const ROWS = 5;
+
+  // ── 사전 ──────────────────────────────────────────────────
+  // 자모 길이가 같은 낱말만 있으면 되므로 오늘 쓸 파일 하나만 내려받습니다.
+  // 78,000여 개 두 음절 낱말 전체가 입력으로 인정됩니다.
+  let WORDS = null;
+  let dictState = 'loading';
+  fetch('dict/' + LEN + '.txt')
+    .then((r) => { if (!r.ok) throw new Error(r.status); return r.text(); })
+    .then((txt) => {
+      const set = new Set();
+      for (let i = 0; i + 2 <= txt.length; i += 2) set.add(toJamo(txt.substr(i, 2)).join(''));
+      WORDS = set;
+      dictState = 'ready';
+    })
+    .catch(() => {
+      dictState = 'failed';
+      say('사전을 불러오지 못했어요 · 새로고침 해주세요', 'warn', true);
+    });
+
+  // 저장된 기록은 자모열로 보관합니다 (예전 판은 낱말 두 글자로 저장돼 있음)
+  const asJamo = (g) => (g.length === 2 ? toJamo(g) : g.split(''));
 
   // ── 저장 ──────────────────────────────────────────────────
   const SKEY = 'natmal5:v1';
@@ -192,10 +200,11 @@
   function submit() {
     if (locked || busy) return;
     if (cur.length < LEN) return reject('자모 ' + LEN + '칸을 모두 채워 주세요');
+    if (dictState === 'loading') return reject('사전을 불러오는 중이에요 · 잠시만요');
+    if (dictState === 'failed') return reject('사전을 불러오지 못했어요 · 새로고침 해주세요');
     const key = cur.join('');
-    if (!byKey.has(key)) return reject('사전에 없는 낱말이에요');
-    const word = byKey.get(key);
-    save.today.guesses.push(word);
+    if (!WORDS.has(key)) return reject('사전에 없는 낱말이에요');
+    save.today.guesses.push(key);
     reveal(row, cur.slice(), true);
   }
 
@@ -323,7 +332,7 @@
   const EMOJI = { hit: '🟩', near: '🟨', miss: '⬛' };
   function emojiGrid() {
     return save.today.guesses
-      .map((w) => score(toJamo(w)).map((s) => EMOJI[s]).join(''))
+      .map((g) => score(asJamo(g)).map((s) => EMOJI[s]).join(''))
       .join('\n');
   }
   function shareText() {
@@ -453,7 +462,7 @@
   $('btnStats').addEventListener('click', openStats);
 
   // ── 되살리기 ───────────────────────────────────────────────
-  save.today.guesses.forEach((w, i) => reveal(i, toJamo(w), false));
+  save.today.guesses.forEach((g, i) => reveal(i, asJamo(g), false));
   drawStats();
   setActiveRow();
   if (save.today.done) setTimeout(openResult, 200);
