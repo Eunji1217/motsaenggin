@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#2F7A52">
+<title>못생긴놈들 글자나 맞춰라</title>
+<meta name="description" content="자모 힌트만 보고 다섯 번 안에 오늘의 낱말을 맞히는 하루 한 번짜리 한글 퍼즐.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="못생긴놈들 글자나 맞춰라">
+<meta property="og:title" content="못생긴놈들 글자나 맞춰라">
+<meta property="og:description" content="자모 힌트만 보고 다섯 번 안에 오늘의 낱말을 맞혀보세요. 하루 한 문제, 모두에게 같은 낱말.">
+<meta property="og:url" content="https://eunji1217.github.io/motsaenggin/">
+<meta property="og:image" content="https://eunji1217.github.io/motsaenggin/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800&family=Gowun+Batang:wght@400;700&display=swap">
+<style>
+:root{
+  --paper:#FBFAF4;
+  --panel:#FFFFFF;
+  --ink:#1B211C;
+  --ink-soft:#5C665D;
+  --ink-faint:#939C92;
+  --rule:#2F7A52;
+  --rule-faint:#CBDDCF;
+  --hit:#2F7A52;
+  --hit-ink:#FFFFFF;
+  --near:#C9922B;
+  --near-ink:#2A2008;
+  --miss:#A6ADA4;
+  --miss-ink:#FFFFFF;
+  --key:#EAEDE4;
+  --key-ink:#1B211C;
+  --key-edge:#D6DBCF;
+  --tile-edge:#C9D2C6;
+  --shadow:0 1px 0 rgba(27,33,28,.10);
+  --focus:#1B6BD6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#11150F;
+    --panel:#181D16;
+    --ink:#E7EBE1;
+    --ink-soft:#9CA697;
+    --ink-faint:#6C7568;
+    --rule:#63A97F;
+    --rule-faint:#2C3A2E;
+    --hit:#3E9466;
+    --hit-ink:#08110B;
+    --near:#D2A340;
+    --near-ink:#1B1405;
+    --miss:#454E44;
+    --miss-ink:#D5DBD1;
+    --key:#242B22;
+    --key-ink:#E7EBE1;
+    --key-edge:#323A2F;
+    --tile-edge:#333B31;
+    --shadow:0 1px 0 rgba(0,0,0,.35);
+    --focus:#7FB6FF;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#11150F;
+  --panel:#181D16;
+  --ink:#E7EBE1;
+  --ink-soft:#9CA697;
+  --ink-faint:#6C7568;
+  --rule:#63A97F;
+  --rule-faint:#2C3A2E;
+  --hit:#3E9466;
+  --hit-ink:#08110B;
+  --near:#D2A340;
+  --near-ink:#1B1405;
+  --miss:#454E44;
+  --miss-ink:#D5DBD1;
+  --key:#242B22;
+  --key-ink:#E7EBE1;
+  --key-edge:#323A2F;
+  --tile-edge:#333B31;
+  --shadow:0 1px 0 rgba(0,0,0,.35);
+  --focus:#7FB6FF;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Gothic A1','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+  -webkit-text-size-adjust:100%;
+}
+.wrap{
+  max-width:480px;margin:0 auto;padding-inline:18px;padding-block:18px 22px;
+  min-height:100svh;display:flex;flex-direction:column;gap:13px;
+}
+
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.title{
+  font-family:'Gowun Batang',serif;font-weight:700;
+  font-size:clamp(1.25rem,6.2vw,1.6rem);line-height:1.18;margin:0;letter-spacing:-.02em;
+  text-wrap:balance;
+}
+.title em{font-style:normal;color:var(--rule)}
+.tagline{margin:.38rem 0 0;font-size:.73rem;color:var(--ink-soft);letter-spacing:.02em}
+.headbtns{display:flex;gap:6px;flex:0 0 auto}
+.iconbtn{
+  width:33px;height:33px;display:grid;place-items:center;
+  background:transparent;border:1px solid var(--key-edge);border-radius:3px;
+  color:var(--ink-soft);font-family:inherit;font-size:.8rem;font-weight:700;cursor:pointer;
+}
+.iconbtn:hover{border-color:var(--rule);color:var(--rule)}
+
+.meta{
+  display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  font-size:.75rem;color:var(--ink-soft);font-variant-numeric:tabular-nums;
+  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule-faint);
+  padding-block:7px;
+}
+.meta strong{color:var(--rule);font-weight:800}
+
+.board{
+  background:var(--panel);
+  border:1px solid var(--rule-faint);
+  padding:11px 11px 11px 6px;
+  display:flex;flex-direction:column;gap:5px;
+}
+.row{display:grid;gap:5px;align-items:center}
+.rownum{
+  font-family:'Gowun Batang',serif;font-size:.7rem;color:var(--ink-faint);
+  text-align:center;font-variant-numeric:tabular-nums;
+}
+.row[data-active="1"] .rownum{color:var(--rule);font-weight:700}
+.tile{
+  aspect-ratio:1;display:grid;place-items:center;max-width:100%;
+  border:1px solid var(--tile-edge);border-radius:2px;
+  font-size:clamp(.95rem,5vw,1.4rem);font-weight:700;line-height:1;
+  color:var(--ink);background:transparent;
+  transition:transform .12s ease;
+}
+.tile[data-filled="1"]{border-color:var(--ink-faint)}
+.tile[data-state="hit"]{background:var(--hit);border-color:var(--hit);color:var(--hit-ink)}
+.tile[data-state="near"]{background:var(--near);border-color:var(--near);color:var(--near-ink)}
+.tile[data-state="miss"]{background:var(--miss);border-color:var(--miss);color:var(--miss-ink)}
+.tile.pop{transform:scale(1.07)}
+.tile.flip{animation:flip .45s ease both}
+@keyframes flip{0%{transform:rotateX(0)}50%{transform:rotateX(90deg)}100%{transform:rotateX(0)}}
+.row.shake{animation:shake .38s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+
+.msg{
+  min-height:1.45rem;display:flex;align-items:center;justify-content:center;
+  font-size:.79rem;font-weight:700;color:var(--rule);text-align:center;
+}
+.msg[data-tone="warn"]{color:var(--near)}
+
+.kb{display:flex;flex-direction:column;gap:5px;margin-top:auto}
+.kbrow{display:grid;grid-template-columns:repeat(9,1fr);gap:5px}
+.key{
+  height:46px;border:1px solid var(--key-edge);border-radius:4px;
+  background:var(--key);color:var(--key-ink);
+  font-family:inherit;font-size:1.02rem;font-weight:700;cursor:pointer;
+  box-shadow:var(--shadow);padding:0;
+  transition:transform .06s ease;
+}
+.key:active{transform:translateY(1px)}
+.key.wide{grid-column:span 2;font-size:.8rem;font-weight:800}
+.key[data-state="hit"]{background:var(--hit);border-color:var(--hit);color:var(--hit-ink)}
+.key[data-state="near"]{background:var(--near);border-color:var(--near);color:var(--near-ink)}
+.key[data-state="miss"]{background:var(--miss);border-color:var(--miss);color:var(--miss-ink)}
+.key.enter{background:var(--rule);border-color:var(--rule);color:#fff}
+
+.stats{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  border-top:1px solid var(--rule-faint);padding-top:9px;margin:0;
+}
+.stat{text-align:center}
+.stat dt{font-size:.67rem;color:var(--ink-faint);letter-spacing:.06em;margin:0}
+.stat dd{
+  margin:.12rem 0 0;font-family:'Gowun Batang',serif;font-weight:700;
+  font-size:1.18rem;font-variant-numeric:tabular-nums;
+}
+
+.veil{
+  position:fixed;inset:0;background:color-mix(in srgb,var(--paper) 84%,transparent);
+  display:grid;place-items:center;padding:18px;z-index:10;
+}
+.sheet{
+  background:var(--panel);border:1px solid var(--rule);
+  max-width:400px;width:100%;padding:22px 20px;
+  max-height:88svh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.14);
+}
+.sheet h2{font-family:'Gowun Batang',serif;font-size:1.3rem;margin:0 0 .12rem}
+.sheet .sub{margin:0 0 14px;font-size:.75rem;color:var(--ink-soft)}
+.grid-emoji{
+  font-size:1.02rem;line-height:1.5;letter-spacing:.05em;margin:0 0 14px;
+  font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif;
+}
+.answer-line{
+  border-block:1px solid var(--rule-faint);padding:10px 0;margin-bottom:14px;
+  display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+  font-size:.78rem;color:var(--ink-soft);
+}
+.answer-line b{font-family:'Gowun Batang',serif;font-size:1.4rem;color:var(--rule);font-weight:700}
+.btnrow{display:flex;gap:8px}
+.btn{
+  flex:1;padding:12px;border-radius:3px;border:1px solid var(--rule);
+  background:var(--rule);color:#fff;font-family:inherit;font-weight:800;font-size:.85rem;cursor:pointer;
+}
+.btn.ghost{background:transparent;color:var(--rule)}
+.next{margin:12px 0 0;font-size:.71rem;color:var(--ink-faint);text-align:center;font-variant-numeric:tabular-nums}
+.rules{font-size:.81rem;line-height:1.7;color:var(--ink-soft);margin:0 0 16px;padding:0;list-style:none}
+.rules li{margin-bottom:.55rem;padding-left:.9rem;position:relative}
+.rules li::before{content:'·';position:absolute;left:.2rem;color:var(--rule);font-weight:800}
+.rules b{color:var(--ink)}
+.swatch{display:inline-grid;place-items:center;width:1.4em;height:1.4em;border-radius:2px;font-size:.85em;font-weight:700;vertical-align:-.3em;margin:0 .1em}
+.sw-hit{background:var(--hit);color:var(--hit-ink)}
+.sw-near{background:var(--near);color:var(--near-ink)}
+.sw-miss{background:var(--miss);color:var(--miss-ink)}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:360px){.key{height:42px;font-size:.95rem}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="head">
+    <div>
+      <h1 class="title">못생긴놈들<br><em>글자나 맞춰라</em></h1>
+      <p class="tagline">자모를 맞춰 오늘의 낱말을 찾으세요</p>
+    </div>
+    <div class="headbtns">
+      <button class="iconbtn" id="btnHelp" type="button" aria-label="규칙 보기">?</button>
+      <button class="iconbtn" id="btnStats" type="button" aria-label="내 기록 보기">기록</button>
+    </div>
+  </header>
+
+  <div class="meta">
+    <span id="metaDate">—</span>
+    <span>자모 <strong id="metaLen">—</strong>칸 · 기회 <strong>5</strong>번</span>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <div class="msg" id="msg" role="status" aria-live="polite"></div>
+
+  <div class="kb" id="kb"></div>
+
+  <dl class="stats">
+    <div class="stat"><dt>누적 플레이</dt><dd id="sPlays">0</dd></div>
+    <div class="stat"><dt>승률</dt><dd id="sRate">—</dd></div>
+    <div class="stat"><dt>평균 시도</dt><dd id="sAvg">—</dd></div>
+  </dl>
+</div>
+
+<div class="veil" id="veil" hidden>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div>
+</div>
+
+<script src="words.js"></script>
+<script src="game.js"></script>
+
+</body>
+</html>
